@@ -28,7 +28,7 @@ def test_approved_review_is_saved(client):
 
     # The moderation service never runs. This stands in for it.
     stub = moderation_says({"approved": True})
-    with patch("routes_reviews.http.post", return_value=stub):
+    with patch("requests.post", return_value=stub):
         response = client.post(
             f"/books/{book['id']}/reviews",
             json={"rating": 5, "comment": "Excellent"},
@@ -49,7 +49,7 @@ def test_rejected_review_is_refused_and_not_saved(client):
 
     # The moderation service never runs. This stands in for it.
     stub = moderation_says({"approved": False, "reason": "Offensive language"})
-    with patch("routes_reviews.http.post", return_value=stub):
+    with patch("requests.post", return_value=stub):
         response = client.post(
             f"/books/{book['id']}/reviews",
             json={"rating": 1, "comment": "terrible"},
@@ -68,7 +68,7 @@ def test_moderation_timeout_returns_504_and_saves_nothing(client):
     book = client.post("/books", json={"title": "Refactoring", "author": "Martin Fowler"}).get_json()
 
     # No 3-second wait. The timeout is raised on the spot.
-    with patch("routes_reviews.http.post", side_effect=http.exceptions.Timeout):
+    with patch("requests.post", side_effect=http.exceptions.Timeout):
         response = client.post(
             f"/books/{book['id']}/reviews",
             json={"rating": 5, "comment": "Great"},
