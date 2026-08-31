@@ -22,6 +22,27 @@ def moderation_says(payload, status=200):
     return fake
 
 
+def test_approved_review_is_saved(client):
+    # A book to hang the review on
+    book = client.post("/books", json={"title": "Clean Code", "author": "Robert Martin"}).get_json()
+
+    # The moderation service never runs. This stands in for it.
+    stub = moderation_says({"approved": True})
+    with patch("routes_reviews.http.post", return_value=stub):
+        response = client.post(
+            f"/books/{book['id']}/reviews",
+            json={"rating": 5, "comment": "Excellent"},
+            headers=AUTH_HEADER,
+        )
+
+    assert response.status_code == 201
+
+    # And it was written down
+    reviews = client.get(f"/books/{book['id']}/reviews").get_json()
+    assert len(reviews) == 1
+    assert reviews[0] == response.get_json()
+
+
 def test_rejected_review_is_refused_and_not_saved(client):
     # A book to hang the review on
     book = client.post("/books", json={"title": "Clean Code", "author": "Robert Martin"}).get_json()
